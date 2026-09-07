@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rep-tracker
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_NAMES
+        value: "Your Name Here"
