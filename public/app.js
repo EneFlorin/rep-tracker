@@ -519,6 +519,34 @@
     renderLbList("lb-month","This month", leaderboard ? leaderboard.month : []);
     renderLbUsers();
   }
+  function colorForWorkout(workoutId){
+    var idx = state.workouts.findIndex(function(w){ return w.id === workoutId; });
+    return idx >= 0 && idx < CHART_COLORS.length ? CHART_COLORS[idx] : CHART_OTHER_COLOR;
+  }
+  function miniDonutSVG(breakdown){
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS,"svg");
+    svg.setAttribute("viewBox","0 0 100 100");
+    var total = breakdown.reduce(function(a,b){ return a+b.total; }, 0);
+    if(total <= 0) return svg;
+    var cx=50, cy=50, rOuter=44, rInner=22;
+    var gapDeg = breakdown.length > 1 ? 2 : 0;
+    var angle = 0;
+    breakdown.forEach(function(b){
+      var frac = b.total/total;
+      var sweep = frac*360;
+      var start = angle + gapDeg/2;
+      var end = angle + sweep - gapDeg/2;
+      if(end > start){
+        var path = document.createElementNS(svgNS,"path");
+        path.setAttribute("d", donutSlicePath(cx,cy,rOuter,rInner,start,end));
+        path.setAttribute("fill", colorForWorkout(b.id));
+        svg.appendChild(path);
+      }
+      angle += sweep;
+    });
+    return svg;
+  }
   function renderLbList(containerId, title, rows){
     var wrap = document.getElementById(containerId);
     if(!wrap) return;
@@ -528,15 +556,26 @@
       wrap.appendChild(el("div","lb-empty","No reps logged yet."));
       return;
     }
-    var list = el("div","lb-list");
     rows.forEach(function(r, i){
-      var row = el("div","lb-row-item");
-      row.appendChild(textEl("span","lb-rank"+(i===0?" r1":""), String(i+1)));
-      row.appendChild(textEl("span","lb-name", r.username));
-      row.appendChild(textEl("span","lb-total", fmtAvg(r.total)));
-      list.appendChild(row);
+      var row = el("div","lb-person-row");
+      var donutWrap = el("div","lb-donut");
+      if(r.breakdown && r.breakdown.length){
+        donutWrap.appendChild(miniDonutSVG(r.breakdown));
+      }
+      row.appendChild(donutWrap);
+      var info = el("div","lb-info");
+      var nameLine = el("div","lb-name-line");
+      nameLine.appendChild(textEl("span","lb-rank r"+(i+1), String(i+1)));
+      nameLine.appendChild(textEl("span","lb-name", r.username));
+      nameLine.appendChild(textEl("span","lb-total", fmtAvg(r.total)));
+      info.appendChild(nameLine);
+      if(r.breakdown && r.breakdown.length){
+        var breakdownText = r.breakdown.map(function(b){ return fmtAvg(b.total)+" "+b.name; }).join(", ");
+        info.appendChild(textEl("div","lb-breakdown", breakdownText));
+      }
+      row.appendChild(info);
+      wrap.appendChild(row);
     });
-    wrap.appendChild(list);
   }
   function renderLbUsers(){
     var wrap = document.getElementById("lb-users");

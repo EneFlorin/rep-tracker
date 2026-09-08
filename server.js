@@ -87,6 +87,24 @@ function dayTotal(userLogs, dstr) {
 function rangeTotal(userLogs, dates) {
   return dates.reduce((sum, d) => sum + dayTotal(userLogs, d), 0);
 }
+function rangeBreakdown(userLogs, dates, workouts) {
+  const totals = {};
+  Object.keys(userLogs).forEach((workoutId) => {
+    let sum = 0;
+    dates.forEach((d) => {
+      const day = userLogs[workoutId][d];
+      if (day && Array.isArray(day.entries)) sum += day.entries.reduce((a, b) => a + b, 0);
+      else if (typeof day === 'number') sum += day;
+    });
+    if (sum > 0) totals[workoutId] = sum;
+  });
+  return Object.keys(totals)
+    .map((id) => {
+      const w = workouts.find((x) => x.id === id);
+      return { id, name: w ? w.name : 'Deleted workout', total: totals[id] };
+    })
+    .sort((a, b) => b.total - a.total);
+}
 
 const app = express();
 app.use(express.json());
@@ -242,6 +260,7 @@ app.post('/api/todos/:id/move-to-bottom', requireAuth, (req, res) => {
 app.get('/api/leaderboard', requireAuth, (req, res) => {
   const logs = readLogs();
   const users = readUsers().map((u) => u.username);
+  const workouts = readWorkouts();
   const now = new Date();
   const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
   const yStr = dateStr(yesterday);
@@ -252,7 +271,14 @@ app.get('/api/leaderboard', requireAuth, (req, res) => {
 
   function rankByDates(dates) {
     return users
-      .map((u) => ({ username: u, total: rangeTotal(logs[u] || {}, dates) }))
+      .map((u) => {
+        const userLogs = logs[u] || {};
+        return {
+          username: u,
+          total: rangeTotal(userLogs, dates),
+          breakdown: rangeBreakdown(userLogs, dates, workouts)
+        };
+      })
       .filter((x) => x.total > 0)
       .sort((a, b) => b.total - a.total)
       .slice(0, 3);
