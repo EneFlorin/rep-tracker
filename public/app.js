@@ -81,14 +81,14 @@
     e.preventDefault();
     var errorBox = document.getElementById("login-error");
     errorBox.hidden = true;
-    var nameInput = document.getElementById("login-username");
-    var name = nameInput.value.trim();
-    if(!name) return;
+    var username = document.getElementById("login-username").value.trim();
+    var password = document.getElementById("login-password").value;
     try{
-      var sess = await api("POST","/api/identify",{name:name});
+      var sess = await api("POST","/api/login",{username:username,password:password});
+      document.getElementById("login-password").value = "";
       await showApp(sess);
     }catch(err){
-      errorBox.textContent = "Couldn't save that name — try again.";
+      errorBox.textContent = "Wrong username or password.";
       errorBox.hidden = false;
     }
   });

@@ -4,24 +4,22 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, 'data');
-const ADMINS_FILE = path.join(DATA_DIR, 'admins.txt');
-const KNOWN_USERS_FILE = path.join(DATA_DIR, 'known_users.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.txt');
 const WORKOUTS_FILE = path.join(DATA_DIR, 'workouts.json');
 const LOGS_FILE = path.join(DATA_DIR, 'logs.json');
 const TODOS_FILE = path.join(DATA_DIR, 'todos.json');
 
 function ensureDataFiles() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(ADMINS_FILE)) {
+  if (!fs.existsSync(USERS_FILE)) {
     fs.writeFileSync(
-      ADMINS_FILE,
-      '# One name per line. Anyone who types one of these names gets admin\n' +
-      '# rights (can add/edit/delete workouts). Names are matched ignoring case.\n' +
-      '# Replace this with your own name.\n' +
-      'Admin\n'
+      USERS_FILE,
+      '# One user per line: username,password,role\n' +
+      '# role is "admin" (can add/edit/delete workouts) or "member"\n' +
+      '# Edit this file directly to add your friends.\n' +
+      'admin,changeme,admin\n'
     );
   }
-  if (!fs.existsSync(KNOWN_USERS_FILE)) fs.writeFileSync(KNOWN_USERS_FILE, '[]');
   if (!fs.existsSync(WORKOUTS_FILE)) fs.writeFileSync(WORKOUTS_FILE, '[]');
   if (!fs.existsSync(LOGS_FILE)) fs.writeFileSync(LOGS_FILE, '{}');
   if (!fs.existsSync(TODOS_FILE)) fs.writeFileSync(TODOS_FILE, '{}');
@@ -29,24 +27,28 @@ function ensureDataFiles() {
 ensureDataFiles();
 
 // On a host where you can't easily open a text file (e.g. a deployed server),
-// set an ADMIN_NAMES env var (comma-separated) to control admins.txt instead.
-if (process.env.ADMIN_NAMES) {
-  const names = process.env.ADMIN_NAMES.split(',').map((s) => s.trim()).filter(Boolean);
-  if (names.length) {
-    fs.writeFileSync(ADMINS_FILE, '# managed via the ADMIN_NAMES environment variable\n' + names.join('\n') + '\n');
-  }
+// set a USERS_TXT env var with the exact contents you'd otherwise put in
+// data/users.txt (one "username,password,role" per line) to manage accounts
+// from Render's dashboard instead.
+if (process.env.USERS_TXT) {
+  fs.writeFileSync(USERS_FILE, process.env.USERS_TXT);
 }
 
-function readAdminNames() {
-  const raw = fs.readFileSync(ADMINS_FILE, 'utf8');
+function readUsers() {
+  const raw = fs.readFileSync(USERS_FILE, 'utf8');
   return raw
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'))
-    .map((l) => l.toLowerCase());
+    .map((l) => {
+      const parts = l.split(',').map((s) => (s || '').trim());
+      return { username: parts[0], password: parts[1], role: parts[2] === 'admin' ? 'admin' : 'member' };
+    })
+    .filter((u) => u.username);
 }
-function isAdminName(name) {
-  return readAdminNames().includes(String(name || '').trim().toLowerCase());
+function findUser(username) {
+  const u = String(username || '').toLowerCase();
+  return readUsers().find((x) => x.username.toLowerCase() === u);
 }
 function readJSON(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return null; }
@@ -59,14 +61,6 @@ function readLogs() { return readJSON(LOGS_FILE) || {}; }
 function writeLogs(obj) { writeJSON(LOGS_FILE, obj); }
 function readTodos() { return readJSON(TODOS_FILE) || {}; }
 function writeTodos(obj) { writeJSON(TODOS_FILE, obj); }
-function readKnownUsers() { return readJSON(KNOWN_USERS_FILE) || []; }
-function rememberUser(name) {
-  const list = readKnownUsers();
-  if (!list.includes(name)) {
-    list.push(name);
-    writeJSON(KNOWN_USERS_FILE, list);
-  }
-}
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -113,14 +107,15 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// --- identity (no password: pick a name, remembered on this device) ---
-app.post('/api/identify', (req, res) => {
-  const name = String((req.body || {}).name || '').trim().slice(0, 40);
-  if (!name) return res.status(400).json({ error: 'name_required' });
-  const role = isAdminName(name) ? 'admin' : 'member';
-  req.session.user = { username: name, role };
-  rememberUser(name);
-  res.json({ username: name, role });
+// --- auth ---
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const user = findUser(username);
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: 'invalid_credentials' });
+  }
+  req.session.user = { username: user.username, role: user.role };
+  res.json({ username: user.username, role: user.role });
 });
 app.post('/api/logout', (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
@@ -246,7 +241,7 @@ app.post('/api/todos/:id/move-to-bottom', requireAuth, (req, res) => {
 // --- group leaderboard ---
 app.get('/api/leaderboard', requireAuth, (req, res) => {
   const logs = readLogs();
-  const users = readKnownUsers();
+  const users = readUsers().map((u) => u.username);
   const now = new Date();
   const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
   const yStr = dateStr(yesterday);

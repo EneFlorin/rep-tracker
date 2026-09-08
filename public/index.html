@@ -254,15 +254,19 @@ input{font-family:inherit;}
   <div class="login-card">
     <div>
       <h1>Rep Tracker</h1>
-      <p>New here &mdash; what's your name? We'll remember you on this device.</p>
+      <p>Sign in to your group's tracker.</p>
     </div>
     <div class="login-error" id="login-error" hidden></div>
     <form id="login-form">
-      <div class="login-field" style="margin-bottom:18px;">
-        <label>Your name</label>
-        <input type="text" id="login-username" autocomplete="name" maxlength="40" required />
+      <div class="login-field" style="margin-bottom:14px;">
+        <label>Username</label>
+        <input type="text" id="login-username" autocomplete="username" maxlength="40" required />
       </div>
-      <button type="submit" class="btn btn-accent" style="width:100%;">Continue</button>
+      <div class="login-field" style="margin-bottom:18px;">
+        <label>Password</label>
+        <input type="password" id="login-password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn btn-accent" style="width:100%;">Sign in</button>
     </form>
   </div>
 </div>
@@ -272,7 +276,7 @@ input{font-family:inherit;}
     <h1>Rep Tracker</h1>
     <div class="masthead-right">
       <span class="user-badge"><span id="user-name"></span><span class="role-tag" id="role-tag" hidden>admin</span></span>
-      <button class="signout-btn" id="signout-btn">Not you?</button>
+      <button class="signout-btn" id="signout-btn">Sign out</button>
     </div>
   </div>
   <p class="tagline">Daily counts reset at midnight. Averages track the days elapsed so far this week and month.</p>
