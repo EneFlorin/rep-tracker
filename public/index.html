@@ -4,6 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Rep Tracker</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#14161a">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -96,6 +103,17 @@ input{font-family:inherit;}
   background:none;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;
   text-decoration:underline;padding:0;
 }
+.sync-status{
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);
+  display:flex;align-items:center;gap:5px;
+}
+.sync-status .dot{width:6px;height:6px;border-radius:50%;background:var(--text-faint);flex:none;}
+.sync-status.synced{color:var(--accent);}
+.sync-status.synced .dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.sync-status.pending{color:#c98500;}
+.sync-status.pending .dot{background:#c98500;box-shadow:0 0 0 3px rgba(201,133,0,0.2);}
+.sync-status.offline{color:var(--danger);}
+.sync-status.offline .dot{background:var(--danger);box-shadow:0 0 0 3px var(--danger-soft);}
 .signout-btn:hover{color:var(--text-dim);}
 .tagline{color:var(--text-dim);font-size:13.5px;margin:0 0 24px;}
 
@@ -282,6 +300,8 @@ input{font-family:inherit;}
   <div class="masthead">
     <h1>Rep Tracker</h1>
     <div class="masthead-right">
+      <button class="signout-btn" id="install-btn" hidden>Install app</button>
+      <span class="sync-status" id="sync-status"><span class="dot"></span><span id="sync-label">Connecting&hellip;</span></span>
       <span class="user-badge"><span id="user-name"></span><span class="role-tag" id="role-tag" hidden>admin</span></span>
       <button class="signout-btn" id="signout-btn">Sign out</button>
     </div>

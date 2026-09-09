@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const fs = require('fs');
 const path = require('path');
 
@@ -109,6 +110,7 @@ function rangeBreakdown(userLogs, dates, workouts) {
 const app = express();
 app.use(express.json());
 app.use(session({
+  store: new FileStore({ path: path.join(DATA_DIR, 'sessions'), logFn: function(){} }),
   secret: process.env.SESSION_SECRET || 'rep-tracker-dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
