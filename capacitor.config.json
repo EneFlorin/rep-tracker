@@ -1,0 +1,10 @@
+{
+  "appId": "com.reptracker.app",
+  "appName": "Rep Tracker",
+  "webDir": "public",
+  "server": {
+    "url": "https://coliseum-waking-escapable.ngrok-free.dev",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
+}
